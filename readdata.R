@@ -108,6 +108,8 @@ print(tb_c)
 print(lr_h)
 print(tb_h)
 
+# 評価データ表示
+print(eval_frm)
 
 # 箱ひげ図を出力
 par(mfrow=c(1,2))
