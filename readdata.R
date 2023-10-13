@@ -5,6 +5,8 @@ library(formattable)
 cri<-3
 minrt<-200
 
+cndname<-c('chair','human')
+
 # 元データの読み込み
 fl <- file.choose("*.csv")
 dat <- read.csv(fl, header =T)
@@ -13,11 +15,21 @@ dat <- read.csv(fl, header =T)
 js_dat <- dat %>% 
   dplyr::select(datajs)
 
+# 評価データの抽出
+evls <- select(dat,starts_with('Q16'))
+
 # データを入れるためのデータフレーム
 js_data <- tibble()
 
+# 評価データを入れるためのデータフレーム
+eval_frm <- data.frame()
+
 # 被験者ごとにデータ変換
 for(i in 3:nrow(js_dat)){
+  # 評価データを行列に代入
+  for (j in 1:15){
+    eval_frm<-rbind(eval_frm,c(i-2,cndname[as.integer(evls[i,j]>evls[i,j+15])+1],j,max(evls[i,j],evls[i,j+15])))
+  }
   #Qualtricsから出力されたもののうちjsPsychのデータを抽出
   tidy_df01 <- js_dat[i, 1]
   #txtとして書き出し
@@ -40,6 +52,9 @@ for(i in 3:nrow(js_dat)){
   js_data[js_data$code==i-2,]$rt[js_data[js_data$code==i-2,]$rt<mrt-sdrt*cri]<-NA
   js_data[js_data$code==i-2,]$rt[js_data[js_data$code==i-2,]$correct==FALSE]<-NA
 }
+
+# 評価データに列名をつける
+colnames(eval_frm)<-c('id','cnd','Q','eval')
 
 # 左右条件と角度条件の列を作る
 js_data$lr<-NA
