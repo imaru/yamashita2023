@@ -3,7 +3,8 @@ library(tidyverse)
 library(formattable)
 
 # 元データの読み込み
-dat <- read.csv("test.csv", header =T)
+fl <- file.choose("*.csv")
+dat <- read.csv(fl, header =T)
 
 # 必要な列の抜き出し
 js_dat <- dat %>% 
