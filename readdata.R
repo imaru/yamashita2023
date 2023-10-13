@@ -2,6 +2,9 @@ library(jsonlite)
 library(tidyverse)
 library(formattable)
 
+cri<-3
+minrt<-200
+
 # 元データの読み込み
 dat <- read.csv("test.csv", header =T)
 
@@ -29,6 +32,11 @@ for(i in 3:nrow(js_dat)){
   }else{
     js_data <- union(js_data, tidy_df02)
   }
+  mrt<-mean(js_data[js_data$code==i-2,]$rt)
+  sdrt<-sd(js_data[js_data$code==i-2,]$rt)
+  js_data[js_data$code==i-2,]$rt[js_data[js_data$code==i-2,]$rt<minrt]<-NA
+  js_data[js_data$code==i-2,]$rt[js_data[js_data$code==i-2,]$rt>mrt+sdrt*cri]<-NA
+  js_data[js_data$code==i-2,]$rt[js_data[js_data$code==i-2,]$rt<mrt-sdrt*cri]<-NA
 }
 
 # 左右条件と角度条件の列を作る
@@ -45,6 +53,8 @@ js_data$ang[str_detect(js_data$stimu,'225')]<-360-225
 js_data$ang[str_detect(js_data$stimu,'270')]<-360-270
 js_data$ang[str_detect(js_data$stimu,'315')]<-360-315
 
+
+
 # lr indexとtoward indexを計算
 js_data$lridx<-sin(js_data$ang*pi/180)*js_data$rt
 js_data$tbidx<--cos(js_data$ang*pi/180)*js_data$rt
@@ -53,8 +63,8 @@ lrsummary<-data.frame()
 tbsummary<-data.frame()
 # 被験者ごと、左右ごとにindexの平均を計算してデータフレームに代入
 for (i in 1:10){
-  lrsummary<-rbind(lrsummary,c(mean(js_data$lridx[js_data$lr=='right' & js_data$code==i]), mean(js_data$lridx[js_data$lr=='left' & js_data$code==i])))
-  tbsummary<-rbind(tbsummary,c(mean(js_data$tbidx[js_data$lr=='right' & js_data$code==i]), mean(js_data$tbidx[js_data$lr=='left' & js_data$code==i])))
+  lrsummary<-rbind(lrsummary,c(mean(js_data$lridx[js_data$lr=='right' & js_data$code==i], na.rm=TRUE), mean(js_data$lridx[js_data$lr=='left' & js_data$code==i], na.rm=TRUE)))
+  tbsummary<-rbind(tbsummary,c(mean(js_data$tbidx[js_data$lr=='right' & js_data$code==i], na.rm=TRUE), mean(js_data$tbidx[js_data$lr=='left' & js_data$code==i], na.rm=TRUE)))
 }
 
 # データフレームの列の名前を変更
@@ -79,3 +89,4 @@ tbg<-ggplot(longtb, aes(x=name, y=value))+geom_violin()+geom_point()
 
 plot(lrg)
 plot(tbg)
+
