@@ -38,13 +38,17 @@ for(i in 3:nrow(js_dat)){
   js_data[js_data$code==i-2,]$rt[js_data[js_data$code==i-2,]$rt<minrt]<-NA
   js_data[js_data$code==i-2,]$rt[js_data[js_data$code==i-2,]$rt>mrt+sdrt*cri]<-NA
   js_data[js_data$code==i-2,]$rt[js_data[js_data$code==i-2,]$rt<mrt-sdrt*cri]<-NA
+  js_data[js_data$code==i-2,]$rt[js_data[js_data$code==i-2,]$correct==FALSE]<-NA
 }
 
 # 左右条件と角度条件の列を作る
 js_data$lr<-NA
 js_data$ang<-NA
+js_data$cnd<-NA
 js_data$lr[str_detect(js_data$stimu,'left')]<-'left'
 js_data$lr[str_detect(js_data$stimu,'right')]<-'right'
+js_data$cnd[str_detect(js_data$stimu,'chair')]<-'chair'
+js_data$cnd[str_detect(js_data$stimu,'human')]<-'human'
 js_data$ang[str_detect(js_data$stimu,'0')]<-0
 js_data$ang[str_detect(js_data$stimu,'45')]<-360-45
 js_data$ang[str_detect(js_data$stimu,'90')]<-360-90
@@ -60,34 +64,49 @@ js_data$ang[str_detect(js_data$stimu,'315')]<-360-315
 js_data$lridx<-sin(js_data$ang*pi/180)*js_data$rt
 js_data$tbidx<--cos(js_data$ang*pi/180)*js_data$rt
 
-lrsummary<-data.frame()
-tbsummary<-data.frame()
+lr_c<-data.frame()
+tb_c<-data.frame()
+lr_h<-data.frame()
+tb_h<-data.frame()
 # 被験者ごと、左右ごとにindexの平均を計算してデータフレームに代入
-for (i in 1:10){
-  lrsummary<-rbind(lrsummary,c(mean(js_data$lridx[js_data$lr=='right' & js_data$code==i], na.rm=TRUE), mean(js_data$lridx[js_data$lr=='left' & js_data$code==i], na.rm=TRUE)))
-  tbsummary<-rbind(tbsummary,c(mean(js_data$tbidx[js_data$lr=='right' & js_data$code==i], na.rm=TRUE), mean(js_data$tbidx[js_data$lr=='left' & js_data$code==i], na.rm=TRUE)))
+for (i in 1:max(js_data$code)){
+  if (js_data[js_data$code==i,]$cnd[1]=='chair'){
+    lr_c<-rbind(lr_c,c(mean(js_data$lridx[js_data$lr=='right' & js_data$code==i], na.rm=TRUE), mean(js_data$lridx[js_data$lr=='left' & js_data$code==i], na.rm=TRUE)))
+    tb_c<-rbind(tb_c,c(mean(js_data$tbidx[js_data$lr=='right' & js_data$code==i], na.rm=TRUE), mean(js_data$tbidx[js_data$lr=='left' & js_data$code==i], na.rm=TRUE)))
+  }
+  else{
+    lr_h<-rbind(lr_h,c(mean(js_data$lridx[js_data$lr=='right' & js_data$code==i], na.rm=TRUE), mean(js_data$lridx[js_data$lr=='left' & js_data$code==i], na.rm=TRUE)))
+    tb_h<-rbind(tb_h,c(mean(js_data$tbidx[js_data$lr=='right' & js_data$code==i], na.rm=TRUE), mean(js_data$tbidx[js_data$lr=='left' & js_data$code==i], na.rm=TRUE)))
+  }
+      
 }
 
 # データフレームの列の名前を変更
-colnames(lrsummary)<-c('right','left')
-colnames(tbsummary)<-c('right','left')
+colnames(lr_c)<-c('right','left')
+colnames(tb_c)<-c('right','left')
+colnames(lr_h)<-c('right','left')
+colnames(tb_h)<-c('right','left')
 
 # まとめの表を出力
-print(lrsummary)
-print(tbsummary)
+print(lr_c)
+print(tb_c)
+print(lr_h)
+print(tb_h)
+
 
 # 箱ひげ図を出力
-boxplot(lrsummary)
-boxplot(tbsummary)
+par(mfrow=c(1,2))
+boxplot(lr_c)
+boxplot(lr_h)
+par(mfrow=c(1,2))
+boxplot(tb_c)
+boxplot(tb_h)
 
 # せっかくなのでviolin plotも
 library(ggplot2)
 library(tidyr)
-longlr<-pivot_longer(lrsummary, cols=c('right','left'))
-longtb<-pivot_longer(tbsummary, cols=c('right','left'))
-lrg<-ggplot(longlr, aes(x=name, y=value))+geom_violin()+geom_point()
-tbg<-ggplot(longtb, aes(x=name, y=value))+geom_violin()+geom_point()
-
-plot(lrg)
-plot(tbg)
+glr<-ggplot(js_data, aes(x=interaction(lr,cnd), y=lridx, color=code))+geom_violin()+geom_point()
+gtb<-ggplot(js_data, aes(x=interaction(lr,cnd), y=tbidx, color=code))+geom_violin()+geom_point()
+plot(glr)
+plot(gtb)
 
