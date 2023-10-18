@@ -3,7 +3,7 @@ library(tidyverse)
 library(formattable)
 
 cri <- 3
-chit <- 0.9
+chit <- 0.8
 minrt <- 300
 maxrt <- 2500
 
@@ -59,6 +59,7 @@ for (i in 3:nrow(js_dat)) {
     }
     mrt <- mean(js_data[js_data$code == i - 2, ]$rt)
     sdrt <- sd(js_data[js_data$code == i - 2, ]$rt)
+    js_data[js_data$code==i-2,]$rt[js_data[js_data$code==i-2,]$rt>maxrt]<-NA
     js_data[js_data$code == i - 2, ]$rt[js_data[js_data$code == i - 2, ]$rt <
                                           minrt] <- NA
     js_data[js_data$code == i - 2, ]$rt[js_data[js_data$code == i - 2, ]$rt >
@@ -104,6 +105,7 @@ tb_h <- data.frame()
 for (i in unique(js_data$code)){
   hit <- sum(js_data[js_data$code == i, ]$correct) / 64
   if (hit >= chit) {
+    
     if (js_data[js_data$code == i, ]$cnd[1] == 'chair') {
       lr_c <-
         rbind(lr_c, c(
@@ -179,3 +181,14 @@ gtb <-
   )) + geom_violin() + geom_point()
 plot(glr)
 plot(gtb)
+
+source('anovakun_489.txt')
+
+data_chair<-cbind('chair',lr_c)
+data_human<-cbind('human',lr_h)
+
+colnames(data_chair)<-c('condition','right','left')
+colnames(data_human)<-c('condition','right','left')
+anovadata<-rbind(data_chair, data_human)
+
+anovakun(anovadata,'AsB',2,2)
