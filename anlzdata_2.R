@@ -1,6 +1,9 @@
 library(jsonlite)
 library(tidyverse)
 library(formattable)
+library(ggplot2)
+library(tidyr)
+library(patchwork)
 
 rm(list=ls())
 
@@ -146,7 +149,12 @@ for (i in unique(js_data$code)){
                    mean(js_data[js_data$code==i & js_data$lr == 'right' & js_data$ang=="225",]$rt,na.rm = T)
                  ))
   }
+  else{
+    sumeval[i,1]<-NA
+  }
 }
+
+sumeval<-na.omit(sumeval)
 
 # データフレームの列の名前を変更
 colnames(lrdata) <- c('right', 'left')
@@ -170,12 +178,10 @@ boxplot(lrdata)
 boxplot(tbdata)
 
 # せっかくなのでviolin plotも
-library(ggplot2)
-library(tidyr)
 
-gang<-ggplot(laoi, aes(x=ang, y=value, color=LR, fill=LR))+geom_violin()+ylab("Reaction Time(ms)")
+
+gang<-ggplot(laoi, aes(x=LR, y=value, color=ang, fill=ang))+geom_violin()+ylab("Reaction Time(ms)")
 gang<-gang+stat_summary(fun=mean, geom='point', color='white',position=position_dodge(width=0.9), size=2)
-#glr<-glr+geom_dotplot(binaxis = "y", stackdir = "center", binwidth = 1,position=position_dodge(width=0.9))
 gang<-gang+scale_fill_grey()+scale_color_grey()+theme_bw()
 gang<-gang+theme(text =element_text(size=18))
 plot(gang)
@@ -183,11 +189,20 @@ ggsave('fig5.png')
 
 source('anovakun_489.txt')
 
-data_chair<-cbind('chair',lr_c)
-data_human<-cbind('human',lr_h)
+anovakun(aoi,'sAB',2,2,peta=T)
 
-colnames(data_chair)<-c('condition','right','left')
-colnames(data_human)<-c('condition','right','left')
-anovadata<-rbind(data_chair, data_human)
+cordat<-data.frame(cbind(aoi$left.135-aoi$left.225, aoi$right.225-aoi$right.135))
+colnames(cordat)<-c('left','right')
+cor(sumeval,cordat$right)
+plot(sumeval$X93, cordat$left, xlab='IRI Score', ylab='AOI RT difference (135deg-225deg)', main="Avater at Left")
+plot(sumeval$X93, cordat$right, xlab='IRI Score', ylab='AOI RT difference (225deg-135deg)', main ="Avater at Right")
 
-anovakun(anovadata,'AsB',2,2,peta=T)
+lcordat<-cbind(cordat,sumeval$X93)
+colnames(lcordat)<-c('left','right','eval')
+gleft<-ggplot(lcordat, aes(x=eval,y=left))+geom_point(size=3)+ylab('RT difference(msec)')+xlab('IRI Score')+theme_bw()
+gleft<-gleft+theme(text =element_text(size=18))+ylim(c(-800,600))+ggtitle('Left')
+
+gright<-ggplot(lcordat, aes(x=eval,y=right))+geom_point(size=3)+ylab('RT difference(msec)')+xlab('IRI Score')+theme_bw()
+gright<-gright+theme(text =element_text(size=18))+ylim(c(-800,600))+ggtitle('Right')
+gleft+gright
+ggsave('fig6.png')

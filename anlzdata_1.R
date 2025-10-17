@@ -2,6 +2,8 @@ library(jsonlite)
 library(tidyverse)
 library(formattable)
 
+rm(list=ls())
+
 cri <- 3
 chit <- 0.9
 minrt <- 300
@@ -194,3 +196,42 @@ colnames(data_human)<-c('condition','right','left')
 anovadata<-rbind(data_chair, data_human)
 
 anovakun(anovadata,'AsB',2,2,peta=T)
+
+#t検定
+sublist <- unique(eval_frm$id)
+qlist <- c(8,9,11,15)
+res <- matrix(nrow=length(sublist), ncol=4)
+condition <- matrix(ncol=length(sublist))
+eval_frm$eval <- as.numeric(eval_frm$eval)
+eval_frm$eval[eval_frm$Q == 9] <- 8 - eval_frm$eval[eval_frm$Q == 9]
+
+evaldat<-data.frame()
+
+for (i in 1:length(sublist)) {
+  temp<-eval_frm[eval_frm$id==sublist[i],]
+  evaldat<-rbind(evaldat,c(sublist[i],eval_frm[eval_frm$id==sublist[i],]$cnd[1],mean(temp[temp$Q==8 | temp$Q==9 | temp$Q==11 | temp$Q==15,]$eval)))
+  condition[i] <- eval_frm[eval_frm$id==sublist[i],]$cnd[1]
+  for (j in 1:length(qlist)){
+    ia <- sublist[i]
+    ja <- qlist[j]
+    res[i,j] <- as.numeric(eval_frm[which(eval_frm$id==ia & eval_frm$Q==ja),]$eval)
+    #res[,2] <- 8-res[,2]
+    
+  }
+}
+
+colnames(evaldat)<-c('id','condition','eval')
+evaldat$condition<-as.factor(evaldat$condition)
+evaldat$eval<-as.numeric(evaldat$eval)
+
+summary(evaldat)
+mean(evaldat[evaldat$condition=='human',]$eval)
+sd(evaldat[evaldat$condition=='human',]$eval)
+mean(evaldat[evaldat$condition=='chair',]$eval)
+sd(evaldat[evaldat$condition=='chair',]$eval)
+t.test(evaldat$eval~evaldat$condition)
+effectsize::hedges_g(evaldat$eval~evaldat$condition)
+
+tdata <- data.frame(t(rbind(rowMeans(res),condition)))
+tdata$X2 <- as.factor(tdata$X2)
+tdata$X1 <- as.numeric(tdata$X1)
