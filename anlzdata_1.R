@@ -76,6 +76,8 @@ for (i in 3:nrow(js_dat)) {
 # 評価データに列名をつける
 colnames(eval_frm) <- c('id', 'cnd', 'Q', 'eval')
 
+
+
 # 左右条件と角度条件の列を作る
 js_data$lr <- NA
 js_data$ang <- NA
@@ -141,6 +143,8 @@ for (i in unique(js_data$code)){
         ))
     }
   }
+  else
+    eval_frm[eval_frm$id==i,]$eval<-NA
 }
 
 # データフレームの列の名前を変更
@@ -198,12 +202,17 @@ anovadata<-rbind(data_chair, data_human)
 anovakun(anovadata,'AsB',2,2,peta=T)
 
 #t検定
+eval_frm<-na.exclude(eval_frm)
+
 sublist <- unique(eval_frm$id)
 qlist <- c(8,9,11,15)
 res <- matrix(nrow=length(sublist), ncol=4)
 condition <- matrix(ncol=length(sublist))
 eval_frm$eval <- as.numeric(eval_frm$eval)
 eval_frm$eval[eval_frm$Q == 9] <- 8 - eval_frm$eval[eval_frm$Q == 9]
+
+# 評価点反転
+eval_frm$eval<-8-eval_frm$eval
 
 evaldat<-data.frame()
 
@@ -219,6 +228,8 @@ for (i in 1:length(sublist)) {
     
   }
 }
+
+
 
 colnames(evaldat)<-c('id','condition','eval')
 evaldat$condition<-as.factor(evaldat$condition)
