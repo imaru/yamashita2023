@@ -4,6 +4,7 @@ library(formattable)
 library(ggplot2)
 library(tidyr)
 library(patchwork)
+library(psych)
 
 rm(list=ls())
 
@@ -94,9 +95,35 @@ eval_frm[eval_frm$Q=="20",]$eval<-NA
 sumeval<-data.frame()
 
 for (i in unique(eval_frm$id)){
-  sumeval<-rbind(sumeval, 
-                 sum(eval_frm[eval_frm$id==i,]$eval, na.rm=T))  
+  
+  PDd<-eval_frm %>% filter(Q==6 | Q==10 | Q==17 | Q==25 | Q==28 | Q==13 | Q==19) %>%
+    pivot_wider(names_from=Q, values_from=eval)
+  ECd<-eval_frm %>% filter(Q==2 | Q==9 | Q==21 | Q==23 | Q==4 | Q==14 | Q==18) %>%
+    pivot_wider(names_from=Q, values_from=eval)
+  PTd<-eval_frm %>% filter(Q==8 | Q==11 | Q==22 | Q==26 | Q==29 | Q==3 | Q==15) %>%
+    pivot_wider(names_from=Q, values_from=eval)
+  FSd<-eval_frm %>% filter(Q==1 | Q==5 | Q==16 | Q==24 | Q==27 | Q==7 | Q==12) %>%
+    pivot_wider(names_from=Q, values_from=eval)
+  
+  total<-eval_frm %>% filter(id==i) %>% 
+    select(eval) %>% sum(na.rm = T)
+  PD<-eval_frm %>% filter(id==i, Q==6 | Q==10 | Q==17 | Q==25 | Q==28 | Q==13 | Q==19) %>% 
+    select(eval) %>% sum(na.rm = T)
+  EC<-eval_frm %>% filter(id==i, Q==2 | Q==9 | Q==21 | Q==23 | Q==4 | Q==14 | Q==18) %>% 
+    select(eval) %>% sum(na.rm = T)
+  PT<-eval_frm %>% filter(id==i, Q==8 | Q==11 | Q==22 | Q==26 | Q==29 | Q==3 | Q==15) %>% 
+    select(eval) %>% sum(na.rm = T)
+  FS<-eval_frm %>% filter(id==i, Q==1 | Q==5 | Q==16 | Q==24 | Q==27 | Q==7 | Q==12) %>% 
+    select(eval) %>% sum(na.rm = T)
+  sumeval<-rbind(sumeval,c(total,PD,EC,PT,FS))
 }
+colnames(sumeval)<-c('total','PD','EC','PT','FS')
+
+#print(alpha(PDd[,-1]))
+#print(alpha(ECd[,-1]))
+#print(alpha(PTd[,-1]))
+#print(alpha(FSd[,-1]))
+
 
 # 左右条件と角度条件の列を作る
 js_data$lr <- NA
@@ -150,11 +177,34 @@ for (i in unique(js_data$code)){
                  ))
   }
   else{
-    sumeval[i,1]<-NA
+    sumeval[i,]<-NA
+    PDd[i,]<-NA
+    ECd[i,]<-NA
+    PTd[i,]<-NA
+    FSd[i,]<-NA
   }
 }
 
+source("anovakun_489.txt")
+anovakun(aoi, 'sAB', 2, 2, peta = TRUE)
+
+
 sumeval<-na.omit(sumeval)
+PDd<-na.omit(PDd)
+ECd<-na.omit(ECd)
+PTd<-na.omit(PTd)
+FSd<-na.omit(FSd)
+
+TOTALd<-cbind(PDd,ECd[,-1],PTd[,-1],FSd[,-1])
+
+describe(sumeval)
+
+# 信頼性係数
+print(alpha(PDd[,-1]))
+print(alpha(ECd[,-1]))
+print(alpha(PTd[,-1]))
+print(alpha(FSd[,-1]))
+print(alpha(TOTALd[,-1]))
 
 # データフレームの列の名前を変更
 colnames(lrdata) <- c('right', 'left')
@@ -191,18 +241,38 @@ source('anovakun_489.txt')
 
 anovakun(aoi,'sAB',2,2,peta=T)
 
+
+# トータル
 cordat<-data.frame(cbind(aoi$left.135-aoi$left.225, aoi$right.225-aoi$right.135))
 colnames(cordat)<-c('left','right')
-cor(sumeval,cordat$right)
-plot(sumeval$X93, cordat$left, xlab='IRI Score', ylab='AOI RT difference (135deg-225deg)', main="Avater at Left")
-plot(sumeval$X93, cordat$right, xlab='IRI Score', ylab='AOI RT difference (225deg-135deg)', main ="Avater at Right")
+cor(sumeval$total,cordat$right)
+plot(sumeval$total, cordat$left, xlab='IRI Score', ylab='AOI RT difference (135deg-225deg)', main="Avater at Left")
+plot(sumeval$total, cordat$right, xlab='IRI Score', ylab='AOI RT difference (225deg-135deg)', main ="Avater at Right")
 
-lcordat<-cbind(cordat,sumeval$X93)
+# PD
+cordat<-data.frame(cbind(aoi$left.135-aoi$left.225, aoi$right.225-aoi$right.135))
+colnames(cordat)<-c('left','right')
+cor(sumeval$PD,cordat$left)
+cor(sumeval$PD,cordat$right)
+#plot(sumeval$PD, cordat$left, xlab='IRI Score(PD)', ylab='AOI RT difference (135deg-225deg)', main="Avater at Left")
+#plot(sumeval$PD, cordat$right, xlab='IRI Score(PD)', ylab='AOI RT difference (225deg-135deg)', main ="Avater at Right")
+
+cor(sumeval$EC,cordat$left)
+cor(sumeval$EC,cordat$right)
+cor(sumeval$PT,cordat$left)
+cor(sumeval$PT,cordat$right)
+cor(sumeval$FS,cordat$left)
+cor(sumeval$FS,cordat$right)
+cor(sumeval$total,cordat$left)
+cor(sumeval$total,cordat$right)
+
+
+lcordat<-cbind(cordat,sumeval$PT)
 colnames(lcordat)<-c('left','right','eval')
 gleft<-ggplot(lcordat, aes(x=eval,y=left))+geom_point(size=3)+ylab('RT difference(msec)')+xlab('IRI Score')+theme_bw()
 gleft<-gleft+theme(text =element_text(size=18))+ylim(c(-800,600))+ggtitle('Left')
 
-gright<-ggplot(lcordat, aes(x=eval,y=right))+geom_point(size=3)+ylab('RT difference(msec)')+xlab('IRI Score')+theme_bw()
+gright<-ggplot(lcordat, aes(x=eval,y=right))+geom_point(size=3)+ylab('RT difference(msec)')+xlab('IRI Score(PT)')+theme_bw()
 gright<-gright+theme(text =element_text(size=18))+ylim(c(-800,600))+ggtitle('Right')
 gleft+gright
 ggsave('fig6.png')
